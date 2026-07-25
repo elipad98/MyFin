@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Actualizar Repositorio y Reconstruir Docker
         run: |
-          cd ~/MyFin
+          cd ~/stacks/MyFin
           git pull origin main
           docker compose up -d --build
