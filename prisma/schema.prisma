@@ -1,0 +1,189 @@
+// Prisma schema for MyFin - Personal Finance & Subscription Manager
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum AccountType {
+  CASH
+  BANK
+  CREDIT
+  INVESTMENT
+  SAVINGS
+  OTHER
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum BillingCycle {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum GoalStatus {
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
+model User {
+  id                     String         @id @default(uuid())
+  name                   String
+  email                  String         @unique
+  password               String
+  role                   Role           @default(MEMBER)
+  currency               String         @default("MXN")
+  emailVerified          Boolean        @default(false)
+  emailVerificationToken String?
+  resetToken             String?
+  resetTokenExpiry       DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+
+  accounts      Account[]
+  categories    Category[]
+  transactions  Transaction[]
+  budgets       Budget[]
+  savingsGoals  SavingsGoal[]
+  subscriptions Subscription[]
+}
+
+model Account {
+  id           String          @id @default(uuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  type         AccountType     @default(BANK)
+  balance      Float           @default(0.0)
+  currency     String          @default("MXN")
+  color        String          @default("#6366f1")
+  icon         String          @default("landmark")
+  accountNumber String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  transactions Transaction[]
+
+  @@index([userId])
+}
+
+model Category {
+  id          String        @id @default(uuid())
+  userId      String?
+  user        User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  type        CategoryType  @default(EXPENSE)
+  color       String        @default("#8b5cf6")
+  icon        String        @default("tag")
+  isSystem    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id                String          @id @default(uuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId         String
+  account           Account         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  categoryId        String?
+  category          Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  amount            Float
+  type              TransactionType @default(EXPENSE)
+  date              DateTime        @default(now())
+  description       String
+  notes             String?
+  isRecurring       Boolean         @default(false)
+  recurringInterval String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([categoryId])
+}
+
+model Budget {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  amount      Float
+  period      String    @default("MONTHLY")
+  month       Int       // 1-12
+  year        Int
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, categoryId, month, year])
+  @@index([userId])
+}
+
+model SavingsGoal {
+  id            String     @id @default(uuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  targetAmount  Float
+  currentAmount Float      @default(0.0)
+  deadline      DateTime?
+  color         String     @default("#10b981")
+  icon          String     @default("target")
+  status        GoalStatus @default(IN_PROGRESS)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([userId])
+}
+
+model Subscription {
+  id           String             @id @default(uuid())
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  provider     String?
+  amount       Float
+  billingCycle BillingCycle       @default(MONTHLY)
+  nextRenewal  DateTime
+  category     String             @default("Streaming")
+  color        String             @default("#e11d48")
+  logo         String?
+  status       SubscriptionStatus @default(ACTIVE)
+  autoPay      Boolean            @default(true)
+  notes        String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([userId])
+}

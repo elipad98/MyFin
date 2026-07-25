@@ -1,0 +1,67 @@
+import { SignJWT, jwtVerify } from 'jose';
+import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
+import prisma from './prisma';
+
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'myfin-secret-key-super-secure-2026'
+);
+
+export interface UserSession {
+  id: string;
+  name: string;
+  email: string;
+  role: 'ADMIN' | 'MEMBER';
+  currency: string;
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 10);
+}
+
+export async function comparePassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
+export async function createSession(user: { id: string; name: string; email: string; role: string; currency: string }) {
+  const token = await new SignJWT({
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    currency: user.currency,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('30d')
+    .sign(JWT_SECRET);
+
+  const cookieStore = await cookies();
+  cookieStore.set('myfin_session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    path: '/',
+  });
+
+  return token;
+}
+
+export async function getSession(): Promise<UserSession | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('myfin_session')?.value;
+    if (!token) return null;
+
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    return payload as unknown as UserSession;
+  } catch {
+    return null;
+  }
+}
+
+export async function clearSession() {
+  const cookieStore = await cookies();
+  cookieStore.delete('myfin_session');
+}

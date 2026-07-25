@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  myfin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: myfin-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:./dev.db
+      - JWT_SECRET=myfin-debian-homelab-super-secret-key-2026
+    volumes:
+      - myfin-data:/app/prisma
+
+volumes:
+  myfin-data:
