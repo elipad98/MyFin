@@ -8,7 +8,7 @@ services:
     container_name: myfin-app
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       - DATABASE_URL=file:./dev.db
       - JWT_SECRET=myfin-debian-homelab-super-secret-key-2026
