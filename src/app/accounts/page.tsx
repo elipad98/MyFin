@@ -32,7 +32,7 @@ export default function AccountsPage() {
       setUser((await uRes.json()).user);
       setAccounts(await (await fetch('/api/accounts')).json());
     } catch (e) {
-      console.error(e);
+      // Ignored
     } finally {
       setLoading(false);
     }

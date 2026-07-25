@@ -23,20 +23,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Credenciales inválidas' }, { status: 401 });
     }
 
-    if (!user.emailVerified) {
-      const origin = request.headers.get('origin') || 'http://localhost:3000';
-      const verifyUrl = `${origin}/verify-email?token=${user.emailVerificationToken}`;
-
-      return NextResponse.json(
-        {
-          error: 'Por favor verifica tu correo electrónico antes de iniciar sesión.',
-          requiresVerification: true,
-          verifyUrl,
-        },
-        { status: 403 }
-      );
-    }
-
     await createSession({
       id: user.id,
       name: user.name,

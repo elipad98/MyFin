@@ -37,7 +37,7 @@ export default function BudgetsPage() {
       setBudgets(bData);
       setCategories(cData.filter((c: any) => c.type === 'EXPENSE'));
     } catch (e) {
-      console.error(e);
+      // Ignored
     } finally {
       setLoading(false);
     }

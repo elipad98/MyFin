@@ -36,7 +36,7 @@ export default function SettingsPage() {
         setMembers(mData);
       }
     } catch (e) {
-      console.error(e);
+      // Ignored
     } finally {
       setLoading(false);
     }

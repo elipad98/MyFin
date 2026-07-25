@@ -4,7 +4,6 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
 
   // 1. Create Default Categories
   const systemCategories = [
@@ -41,21 +40,19 @@ async function main() {
   }
 
   // 2. Create Admin User
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const hashedPassword = await bcrypt.hash('!Thehellcat98!', 10);
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@myfin.local' },
+    where: { email: 'epadila@admin.com' },
     update: { emailVerified: true },
     create: {
       name: 'Eliezer (Admin)',
-      email: 'admin@myfin.local',
+      email: 'epadila@admin.com',
       password: hashedPassword,
       role: 'ADMIN',
       currency: 'MXN',
       emailVerified: true,
     },
   });
-
-  console.log('✅ Admin user created: admin@myfin.local / admin123');
 
   // 3. Create Sample Accounts
   const existingAccounts = await prisma.account.findMany({
@@ -179,7 +176,6 @@ async function main() {
     }
   }
 
-  console.log('🎉 Seeding completed successfully!');
 }
 
 main()

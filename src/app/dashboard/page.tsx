@@ -62,7 +62,7 @@ export default function DashboardPage() {
       setSubscriptions(subData);
       setRecentTxs(txData);
     } catch (err) {
-      console.error(err);
+      // Ignored
     } finally {
       setLoading(false);
     }

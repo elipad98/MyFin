@@ -35,7 +35,7 @@ export default function GoalsPage() {
       setUser((await uRes.json()).user);
       setGoals(await (await fetch('/api/goals')).json());
     } catch (e) {
-      console.error(e);
+      // Ignored
     } finally {
       setLoading(false);
     }

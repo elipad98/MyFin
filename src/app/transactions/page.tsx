@@ -32,7 +32,7 @@ export default function TransactionsPage() {
       const data = await (await fetch(url)).json();
       setTransactions(data);
     } catch (e) {
-      console.error(e);
+      // Ignored
     } finally {
       setLoading(false);
     }

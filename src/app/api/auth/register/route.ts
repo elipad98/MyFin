@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hashPassword, createSession } from '@/lib/auth';
-import { generateVerificationToken } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -19,13 +18,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'El correo electrónico ya está registrado' }, { status: 400 });
     }
 
-    // First registered user becomes ADMIN and is automatically verified
+    // First registered user becomes ADMIN, others become MEMBER
     const userCount = await prisma.user.count();
-    const isFirstUser = userCount === 0;
-    const role = isFirstUser ? 'ADMIN' : 'MEMBER';
+    const role = userCount === 0 ? 'ADMIN' : 'MEMBER';
 
     const hashedPassword = await hashPassword(password);
-    const verificationToken = generateVerificationToken();
 
     const newUser = await prisma.user.create({
       data: {
@@ -34,8 +31,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
         role,
         currency,
-        emailVerified: isFirstUser, // First user is auto-verified admin
-        emailVerificationToken: isFirstUser ? null : verificationToken,
+        emailVerified: true,
       },
     });
 
@@ -47,31 +43,23 @@ export async function POST(request: Request) {
       ],
     });
 
-    const origin = request.headers.get('origin') || 'http://localhost:3000';
-    const verificationUrl = `${origin}/verify-email?token=${verificationToken}`;
-
-    // If first user, create session directly
-    if (isFirstUser) {
-      await createSession({
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        currency: newUser.currency,
-      });
-    }
+    // Create login session for newly registered user
+    await createSession({
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      currency: newUser.currency,
+    });
 
     return NextResponse.json({
       success: true,
-      requiresVerification: !isFirstUser,
-      verificationUrl: !isFirstUser ? verificationUrl : undefined,
       user: {
         id: newUser.id,
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
         currency: newUser.currency,
-        emailVerified: newUser.emailVerified,
       },
     });
   } catch (error) {

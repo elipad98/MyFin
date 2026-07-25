@@ -24,7 +24,7 @@ export default function ReportsPage() {
       setUser((await uRes.json()).user);
       setReports(await (await fetch('/api/reports')).json());
     } catch (e) {
-      console.error(e);
+      // Ignored
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function ReportsPage() {
       link.click();
       document.body.removeChild(link);
     } catch (e) {
-      console.error(e);
+      // Ignored
     }
   };
 

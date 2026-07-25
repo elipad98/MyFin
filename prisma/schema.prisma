@@ -59,7 +59,7 @@ model User {
   password               String
   role                   Role           @default(MEMBER)
   currency               String         @default("MXN")
-  emailVerified          Boolean        @default(false)
+  emailVerified          Boolean        @default(true)
   emailVerificationToken String?
   resetToken             String?
   resetTokenExpiry       DateTime?

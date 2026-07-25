@@ -52,7 +52,7 @@ export default function SubscriptionsPage() {
       const subRes = await fetch('/api/subscriptions');
       setSubscriptions(await subRes.json());
     } catch (err) {
-      console.error(err);
+      // Ignored
     } finally {
       setLoading(false);
     }
