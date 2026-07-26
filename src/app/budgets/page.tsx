@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import Header from '@/components/Header';
 import TransactionModal from '@/components/TransactionModal';
-import { PieChart, Plus, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { PieChart, Plus, AlertTriangle, CheckCircle2, X, Trash2, Edit3 } from 'lucide-react';
 
 export default function BudgetsPage() {
   const router = useRouter();
@@ -71,6 +71,12 @@ export default function BudgetsPage() {
     }
   };
 
+  const handleDeleteBudget = async (id: string) => {
+    if (!confirm('¿Eliminar este presupuesto?')) return;
+    await fetch(`/api/budgets/${id}`, { method: 'DELETE' });
+    loadData();
+  };
+
   return (
     <div className="flex min-h-screen bg-[#070b14]">
       <Navigation user={user} onOpenQuickAdd={() => setIsTxModalOpen(true)} />
@@ -125,17 +131,26 @@ export default function BudgetsPage() {
                         </div>
                       </div>
 
-                      <span
-                        className={`text-xs font-extrabold px-2.5 py-1 rounded-full border ${
-                          isOver
-                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                            : isWarning
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        }`}
-                      >
-                        {percent}% gastado
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-extrabold px-2.5 py-1 rounded-full border ${
+                            isOver
+                              ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                              : isWarning
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                              : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                          }`}
+                        >
+                          {percent}% gastado
+                        </span>
+                        <button
+                          onClick={() => handleDeleteBudget(b.id)}
+                          className="text-slate-500 hover:text-rose-400 p-1 transition-colors"
+                          title="Eliminar presupuesto"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Progress Bar */}
