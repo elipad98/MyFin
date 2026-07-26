@@ -36,10 +36,12 @@ export async function createSession(user: { id: string; name: string; email: str
     .setExpirationTime('30d')
     .sign(JWT_SECRET);
 
+  const isSecure = process.env.COOKIE_SECURE === 'true';
+
   const cookieStore = await cookies();
   cookieStore.set('myfin_session', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     sameSite: 'lax',
     maxAge: 30 * 24 * 60 * 60, // 30 days
     path: '/',
