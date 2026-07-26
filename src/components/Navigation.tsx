@@ -57,8 +57,8 @@ export default function Navigation({ user, onOpenQuickAdd }: NavigationProps) {
       {/* Brand Header */}
       <div className="p-6 flex items-center justify-between border-b border-slate-800/60">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl gradient-button flex items-center justify-center font-extrabold text-xl shadow-lg">
-            💎
+          <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg border border-slate-700/60 bg-slate-900">
+            <img src="/logo.png" alt="MyFin Logo" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-bold text-lg text-white tracking-tight flex items-center gap-1.5">

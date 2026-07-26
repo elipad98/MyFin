@@ -51,8 +51,8 @@ export default function LoginPage() {
       <div className="w-full max-w-md z-10">
         {/* Logo Banner */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl gradient-button text-3xl mb-4 shadow-xl">
-            💎
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl overflow-hidden shadow-2xl mb-4 border border-indigo-500/30 bg-slate-900">
+            <img src="/logo.png" alt="MyFin Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">MyFin</h1>
           <p className="text-sm text-slate-400 mt-2">
