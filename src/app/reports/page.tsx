@@ -68,7 +68,7 @@ export default function ReportsPage() {
     <div className="flex min-h-screen bg-[#070b14]">
       <Navigation user={user} onOpenQuickAdd={() => setIsTxModalOpen(true)} />
 
-      <main className="flex-1 p-6 md:p-10 max-w-7xl overflow-x-hidden">
+      <main className="flex-1 px-4 pt-20 pb-24 md:p-10 max-w-7xl overflow-x-hidden w-full">
         <Header
           user={user}
           title="Reportes Financieros"
