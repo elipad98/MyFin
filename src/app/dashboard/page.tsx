@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [recentTxs, setRecentTxs] = useState<any[]>([]);
+  const [creditSummary, setCreditSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -50,17 +51,19 @@ export default function DashboardPage() {
       const userData = await userRes.json();
       setUser(userData.user);
 
-      const [repData, accData, subData, txData] = await Promise.all([
+      const [repData, accData, subData, txData, credData] = await Promise.all([
         fetch('/api/reports').then((r) => r.json()),
         fetch('/api/accounts').then((r) => r.json()),
         fetch('/api/subscriptions').then((r) => r.json()),
         fetch('/api/transactions?limit=6').then((r) => r.json()),
+        fetch('/api/accounts/credit-summary').then((r) => r.json()),
       ]);
 
       setReports(repData);
       setAccounts(accData);
       setSubscriptions(subData);
       setRecentTxs(txData);
+      setCreditSummary(credData);
     } catch (err) {
       // Ignored
     } finally {
@@ -176,6 +179,47 @@ export default function DashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Upcoming Credit Card Payment Alerts */}
+            {creditSummary?.cards && creditSummary.cards.length > 0 && (
+              <div className="space-y-3">
+                {creditSummary.cards
+                  .filter((c: any) => c.status === 'DUE_SOON' || c.status === 'OVERDUE')
+                  .map((card: any) => (
+                    <div
+                      key={card.accountId}
+                      className={`glass-card p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border ${
+                        card.status === 'OVERDUE'
+                          ? 'border-rose-500/40 bg-rose-500/10 text-rose-200'
+                          : 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-xl ${card.status === 'OVERDUE' ? 'bg-rose-500/20 text-rose-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                          <AlertTriangle className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                            <span>Vencimiento de Tarjeta: {card.accountName}</span>
+                            <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-900/60 border border-slate-700">
+                              Día Límite: {new Date(card.paymentDueDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
+                            </span>
+                          </h4>
+                          <p className="text-xs text-slate-300 mt-0.5">
+                            Monto a pagar al corte: <span className="font-extrabold text-white">${card.statementBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span> • {card.statusMessage}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => router.push('/accounts')}
+                        className="text-xs font-bold px-4 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-900 text-white transition-all border border-slate-700 shrink-0"
+                      >
+                        Ver Tarjetas →
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            )}
 
             {/* Upcoming Subscription Renewal Alert */}
             {upcomingRenewal && (

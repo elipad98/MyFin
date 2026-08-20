@@ -90,11 +90,30 @@ async function main() {
         userId: adminUser.id,
         name: 'Mercado Pago TC',
         type: 'CREDIT',
-        balance: -3200.00,
+        balance: 3200.00,
         currency: 'MXN',
         color: '#0284c7',
         icon: 'credit-card',
         accountNumber: '**** 1204',
+        cutoffDay: 15,
+        paymentDueDay: 5,
+        creditLimit: 15000.00,
+      },
+    });
+
+    const nuCreditAcc = await prisma.account.create({
+      data: {
+        userId: adminUser.id,
+        name: 'Nu Tarjeta de Crédito',
+        type: 'CREDIT',
+        balance: 5400.00,
+        currency: 'MXN',
+        color: '#8b5cf6',
+        icon: 'credit-card',
+        accountNumber: '**** 8841',
+        cutoffDay: 25,
+        paymentDueDay: 15,
+        creditLimit: 25000.00,
       },
     });
 

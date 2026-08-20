@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,7 +11,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [inactivityNotice, setInactivityNotice] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('reason') === 'inactivity') {
+        setInactivityNotice(true);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +86,19 @@ export default function LoginPage() {
               {isRegistering ? '¿Ya tienes cuenta? Login' : '¿Nuevo usuario? Registro'}
             </button>
           </div>
+
+          {/* Inactivity Expiration Alert */}
+          {inactivityNotice && (
+            <div className="mb-5 p-3.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5">
+              <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold block text-amber-100">Sesión expirada por inactividad</span>
+                <span className="text-amber-200/80">
+                  Transcurrió 1 hora sin interacción. Por tu seguridad, vuelve a ingresar tus credenciales.
+                </span>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-300 text-xs font-medium">

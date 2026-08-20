@@ -7,7 +7,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const { id } = await params;
-  const { name, type, balance, color, icon, accountNumber } = await request.json();
+  const { name, type, balance, color, icon, accountNumber, cutoffDay, paymentDueDay, creditLimit } = await request.json();
 
   try {
     const updated = await prisma.account.updateMany({
@@ -19,6 +19,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         color,
         icon,
         accountNumber,
+        cutoffDay: cutoffDay !== undefined ? (cutoffDay ? parseInt(cutoffDay, 10) : null) : undefined,
+        paymentDueDay: paymentDueDay !== undefined ? (paymentDueDay ? parseInt(paymentDueDay, 10) : null) : undefined,
+        creditLimit: creditLimit !== undefined ? (creditLimit ? parseFloat(creditLimit) : null) : undefined,
       },
     });
 

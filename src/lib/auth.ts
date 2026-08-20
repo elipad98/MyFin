@@ -1,11 +1,13 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
-import prisma from './prisma';
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'myfin-secret-key-super-secure-2026'
 );
+
+// Duración de la sesión por inactividad: 1 Hora (3600 segundos)
+export const SESSION_MAX_AGE_SECONDS = 60 * 60; // 1 Hora
 
 export interface UserSession {
   id: string;
@@ -13,6 +15,8 @@ export interface UserSession {
   email: string;
   role: 'ADMIN' | 'MEMBER';
   currency: string;
+  iat?: number;
+  exp?: number;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -33,7 +37,7 @@ export async function createSession(user: { id: string; name: string; email: str
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('30d')
+    .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`) // Expiración exacta de 1 Hora
     .sign(JWT_SECRET);
 
   const isSecure = process.env.COOKIE_SECURE === 'true';
@@ -43,11 +47,26 @@ export async function createSession(user: { id: string; name: string; email: str
     httpOnly: true,
     secure: isSecure,
     sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: SESSION_MAX_AGE_SECONDS, // 1 hora
     path: '/',
   });
 
   return token;
+}
+
+export async function refreshSession(): Promise<boolean> {
+  const session = await getSession();
+  if (!session) return false;
+
+  await createSession({
+    id: session.id,
+    name: session.name,
+    email: session.email,
+    role: session.role,
+    currency: session.currency,
+  });
+
+  return true;
 }
 
 export async function getSession(): Promise<UserSession | null> {

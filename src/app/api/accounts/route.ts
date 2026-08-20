@@ -19,7 +19,18 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
-    const { name, type, balance, currency = 'MXN', color = '#6366f1', icon = 'landmark', accountNumber } = await request.json();
+    const {
+      name,
+      type,
+      balance,
+      currency = 'MXN',
+      color = '#6366f1',
+      icon = 'landmark',
+      accountNumber,
+      cutoffDay,
+      paymentDueDay,
+      creditLimit,
+    } = await request.json();
 
     if (!name) return NextResponse.json({ error: 'El nombre de la cuenta es requerido' }, { status: 400 });
 
@@ -33,6 +44,9 @@ export async function POST(request: Request) {
         color,
         icon,
         accountNumber,
+        cutoffDay: cutoffDay ? parseInt(cutoffDay, 10) : null,
+        paymentDueDay: paymentDueDay ? parseInt(paymentDueDay, 10) : null,
+        creditLimit: creditLimit ? parseFloat(creditLimit) : null,
       },
     });
 
