@@ -30,7 +30,6 @@ export default function AccountsPage() {
   const [isAccModalOpen, setIsAccModalOpen] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
 
-  // Form State
   const [name, setName] = useState('');
   const [type, setType] = useState('BANK');
   const [balance, setBalance] = useState('');
@@ -56,8 +55,8 @@ export default function AccountsPage() {
 
       setAccounts(accsRes);
       setCreditSummary(creditRes);
-    } catch (e) {
-      // Ignored
+    } catch {
+      // Ignorado
     } finally {
       setLoading(false);
     }
@@ -161,7 +160,6 @@ export default function AccountsPage() {
           <div className="text-center py-20 text-slate-400 font-medium">Cargando información bancaria...</div>
         ) : (
           <div className="space-y-10">
-            {/* Patrimonio Total & Botón Nueva Cuenta */}
             <div className="glass-panel p-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-indigo-500/20">
               <div>
                 <span className="text-xs uppercase text-slate-400 font-semibold tracking-wider">Patrimonio Neto Estimado</span>
@@ -179,7 +177,6 @@ export default function AccountsPage() {
               </button>
             </div>
 
-            {/* SECCIÓN ESPECIAL: TRACKING DE TARJETAS DE CRÉDITO */}
             {creditSummary?.cards && creditSummary.cards.length > 0 && (
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -194,7 +191,6 @@ export default function AccountsPage() {
                   </div>
                 </div>
 
-                {/* Tarjetas de Crédito Visuales */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {creditSummary.cards.map((card: any) => {
                     const originalAccount = accounts.find((a) => a.id === card.accountId);
@@ -206,7 +202,6 @@ export default function AccountsPage() {
                         style={{ borderTopColor: card.color }}
                       >
                         <div>
-                          {/* Encabezado Tarjeta */}
                           <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                               <div
@@ -239,7 +234,6 @@ export default function AccountsPage() {
                             </div>
                           </div>
 
-                          {/* Status Badge */}
                           <div className="mb-4">
                             {card.status === 'PAID' && (
                               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -267,7 +261,6 @@ export default function AccountsPage() {
                             )}
                           </div>
 
-                          {/* Pago para No Generar Intereses */}
                           <div className="bg-slate-900/70 rounded-xl p-3.5 mb-4 border border-slate-800">
                             <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider block">
                               Monto a Pagar (Corte Anterior)
@@ -280,7 +273,6 @@ export default function AccountsPage() {
                             </div>
                           </div>
 
-                          {/* Fechas Importantes */}
                           <div className="grid grid-cols-2 gap-3 text-xs mb-4">
                             <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
                               <span className="text-slate-400 block text-[10px] uppercase font-semibold">Día de Corte</span>
@@ -296,7 +288,6 @@ export default function AccountsPage() {
                             </div>
                           </div>
 
-                          {/* Línea de Crédito & Barra de Utilización */}
                           <div className="space-y-1.5 pt-2 border-t border-slate-800">
                             <div className="flex items-center justify-between text-xs">
                               <span className="text-slate-400">Deuda Total / Límite</span>
@@ -327,15 +318,11 @@ export default function AccountsPage() {
                   })}
                 </div>
 
-                {/* GRÁFICAS DE SALUD CREDITICIA */}
                 <CreditHealthCharts cards={creditSummary.cards} globalMetrics={creditSummary.globalMetrics} />
-
-                {/* CONSEJOS DE SALUD CREDITICIA */}
                 <CreditTips />
               </div>
             )}
 
-            {/* TODAS LAS CUENTAS (Bancos, Efectivo, Ahorros, etc.) */}
             <div className="space-y-4">
               <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
                 <Wallet className="w-6 h-6 text-emerald-400" />
@@ -403,7 +390,6 @@ export default function AccountsPage() {
           </div>
         )}
 
-        {/* Modal: Crear / Editar Cuenta */}
         {isAccModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <div className="bg-[#131b2e] border border-slate-700/80 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl p-6">
@@ -446,7 +432,6 @@ export default function AccountsPage() {
                   </select>
                 </div>
 
-                {/* Campos Específicos para Tarjeta de Crédito */}
                 {type === 'CREDIT' && (
                   <div className="p-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 space-y-3.5">
                     <h4 className="text-xs font-bold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">

@@ -7,7 +7,6 @@ export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-  // Buscar todas las cuentas tipo CREDIT del usuario
   const creditAccounts = await prisma.account.findMany({
     where: {
       userId: session.id,
@@ -29,7 +28,6 @@ export async function GET() {
     }
   });
 
-  // Métricas de salud global
   const totalCreditLimit = summaries.reduce((acc, c) => acc + c.creditLimit, 0);
   const totalCreditUsed = summaries.reduce((acc, c) => acc + c.balance, 0);
   const totalStatementBalance = summaries.reduce((acc, c) => acc + c.statementBalance, 0);

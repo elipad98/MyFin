@@ -20,18 +20,12 @@ export interface CreditCardSummary {
   healthLevel: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'CRITICAL';
 }
 
-/**
- * Normaliza un día del mes respetando los límites de los meses (ej. 31 de Febrero -> 28/29 de Febrero)
- */
 function getValidDate(year: number, month: number, day: number): Date {
   const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
   const validDay = Math.min(day, lastDayOfMonth);
   return new Date(year, month, validDay, 23, 59, 59, 999);
 }
 
-/**
- * Calcula el estado analítico de una tarjeta de crédito
- */
 export function calculateCreditCardMetrics(account: {
   id: string;
   name: string;
@@ -52,40 +46,33 @@ export function calculateCreditCardMetrics(account: {
 
   const today = new Date();
   const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth(); // 0-indexed
+  const currentMonth = today.getMonth();
   const cutoffDay = Math.max(1, Math.min(31, account.cutoffDay));
   const paymentDueDay = Math.max(1, Math.min(31, account.paymentDueDay));
   const creditLimit = account.creditLimit || 0;
 
-  // Determinar la fecha del último corte y la del próximo corte
   let lastCutoff: Date;
   let nextCutoff: Date;
 
   if (today.getDate() > cutoffDay) {
-    // Ya pasó el día de corte de este mes
     lastCutoff = getValidDate(currentYear, currentMonth, cutoffDay);
     nextCutoff = getValidDate(currentYear, currentMonth + 1, cutoffDay);
   } else {
-    // Aún no pasa el día de corte de este mes
     lastCutoff = getValidDate(currentYear, currentMonth - 1, cutoffDay);
     nextCutoff = getValidDate(currentYear, currentMonth, cutoffDay);
   }
 
-  // La fecha límite de pago del último corte normalmente vence en el mes siguiente al corte
   let paymentDueYear = lastCutoff.getFullYear();
   let paymentDueMonth = lastCutoff.getMonth();
 
   if (paymentDueDay <= cutoffDay) {
-    // Vence el mes posterior al corte (ej: Corte 15, Límite 5 -> 5 del mes siguiente)
     paymentDueMonth += 1;
   }
   const paymentDueDate = getValidDate(paymentDueYear, paymentDueMonth, paymentDueDay);
 
-  // Período anterior (para calcular el Saldo al Corte)
   const prevCycleStart = getValidDate(lastCutoff.getFullYear(), lastCutoff.getMonth() - 1, cutoffDay + 1);
   prevCycleStart.setHours(0, 0, 0, 0);
 
-  // Calcular las transacciones del ciclo cerrado (Corte anterior)
   const txs = account.transactions || [];
   let statementExpenses = 0;
   let statementPayments = 0;
@@ -93,31 +80,24 @@ export function calculateCreditCardMetrics(account: {
 
   txs.forEach((tx) => {
     const txDate = new Date(tx.date);
-    // Gastos/Pagos en periodo cerrado
     if (txDate >= prevCycleStart && txDate <= lastCutoff) {
       if (tx.type === 'EXPENSE') statementExpenses += tx.amount;
       if (tx.type === 'INCOME' || tx.type === 'TRANSFER') statementPayments += tx.amount;
     }
-    // Gastos en periodo activo (en curso)
     if (txDate > lastCutoff && txDate <= today) {
       if (tx.type === 'EXPENSE') currentCycleExpenses += tx.amount;
     }
   });
 
-  // Saldo a pagar del corte anterior (No generar intereses)
   const statementBalance = Math.max(0, statementExpenses - statementPayments);
-
-  // Saldo de cuenta (deuda actual total)
   const currentBalance = Math.max(0, account.balance);
   const availableCredit = Math.max(0, creditLimit - currentBalance);
   const utilizationRate = creditLimit > 0 ? Math.min(100, Math.round((currentBalance / creditLimit) * 100)) : 0;
 
-  // Días faltantes
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysUntilCutoff = Math.max(0, Math.ceil((nextCutoff.getTime() - today.getTime()) / msPerDay));
   const daysUntilPaymentDue = Math.ceil((paymentDueDate.getTime() - today.getTime()) / msPerDay);
 
-  // Estado del pago y mensaje
   let status: 'PAID' | 'DUE_SOON' | 'OVERDUE' | 'IN_PROGRESS' = 'IN_PROGRESS';
   let statusMessage = '';
 
@@ -135,7 +115,6 @@ export function calculateCreditCardMetrics(account: {
     statusMessage = `Fecha límite de pago en ${daysUntilPaymentDue} días.`;
   }
 
-  // Nivel de Salud Crediticia
   let healthLevel: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'CRITICAL' = 'EXCELLENT';
   if (utilizationRate > 80 || status === 'OVERDUE') {
     healthLevel = 'CRITICAL';

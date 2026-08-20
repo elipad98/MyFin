@@ -31,6 +31,13 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   try {
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Formato de petición inválido (se esperaba JSON)' }, { status: 400 });
+    }
+
     const {
       name,
       type,
@@ -41,7 +48,7 @@ export async function POST(request: Request) {
       cutoffDay,
       paymentDueDay,
       creditLimit,
-    } = await request.json();
+    } = body;
 
     if (!name) return NextResponse.json({ error: 'El nombre de la cuenta es requerido' }, { status: 400 });
 
@@ -66,8 +73,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(account);
-  } catch (error) {
-    console.error('Error creating account:', error);
-    return NextResponse.json({ error: 'Error al crear la cuenta' }, { status: 500 });
+  } catch (error: any) {
+    const errorMessage = error?.message || 'Error al crear la cuenta';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

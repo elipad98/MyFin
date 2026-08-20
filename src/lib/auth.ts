@@ -6,7 +6,6 @@ const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'myfin-secret-key-super-secure-2026'
 );
 
-// Duración de la sesión por inactividad: 1 Hora (3600 segundos)
 export const SESSION_MAX_AGE_SECONDS = 60 * 60; // 1 Hora
 
 export interface UserSession {
@@ -37,7 +36,7 @@ export async function createSession(user: { id: string; name: string; email: str
   })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`) // Expiración exacta de 1 Hora
+    .setExpirationTime(`${SESSION_MAX_AGE_SECONDS}s`)
     .sign(JWT_SECRET);
 
   const isSecure = process.env.COOKIE_SECURE === 'true';
@@ -47,7 +46,7 @@ export async function createSession(user: { id: string; name: string; email: str
     httpOnly: true,
     secure: isSecure,
     sameSite: 'lax',
-    maxAge: SESSION_MAX_AGE_SECONDS, // 1 hora
+    maxAge: SESSION_MAX_AGE_SECONDS,
     path: '/',
   });
 

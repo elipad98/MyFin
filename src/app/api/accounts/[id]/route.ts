@@ -19,7 +19,13 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const { id } = await params;
-  const body = await request.json();
+  let body: any = {};
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Formato de petición inválido (se esperaba JSON)' }, { status: 400 });
+  }
+
   const { name, type, balance, color, icon, cutoffDay, paymentDueDay, creditLimit } = body;
 
   try {
@@ -54,9 +60,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const account = await prisma.account.findUnique({ where: { id } });
     return NextResponse.json(account);
-  } catch (error) {
-    console.error('Error updating account:', error);
-    return NextResponse.json({ error: 'Error al actualizar cuenta' }, { status: 500 });
+  } catch (error: any) {
+    const errorMessage = error?.message || 'Error al actualizar cuenta';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
 
@@ -76,8 +82,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error deleting account:', error);
-    return NextResponse.json({ error: 'Error al eliminar cuenta' }, { status: 500 });
+  } catch (error: any) {
+    const errorMessage = error?.message || 'Error al eliminar cuenta';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

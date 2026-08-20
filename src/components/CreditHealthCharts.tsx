@@ -30,7 +30,6 @@ interface CreditHealthChartsProps {
 export default function CreditHealthCharts({ cards, globalMetrics }: CreditHealthChartsProps) {
   if (cards.length === 0) return null;
 
-  // Datos para gráfica de barras: Deuda al Corte vs Crédito Disponible
   const barChartData = cards.map((card) => ({
     name: card.accountName.length > 14 ? card.accountName.substring(0, 12) + '...' : card.accountName,
     'Saldo al Corte': card.statementBalance,
@@ -39,13 +38,11 @@ export default function CreditHealthCharts({ cards, globalMetrics }: CreditHealt
     color: card.color,
   }));
 
-  // Datos para la distribución de uso global (Usado vs Disponible)
   const pieData = [
     { name: 'Crédito Utilizado', value: globalMetrics.totalCreditUsed, color: '#f43f5e' },
     { name: 'Crédito Disponible', value: globalMetrics.totalAvailableCredit, color: '#10b981' },
   ];
 
-  // Evaluar nivel de salud global
   let healthBadge = {
     title: 'Salud Crediticia Excelente',
     desc: 'Mantienes tu nivel de uso de crédito por debajo del 30% recomendado. Tu score crediticio está protegido.',
@@ -78,7 +75,6 @@ export default function CreditHealthCharts({ cards, globalMetrics }: CreditHealt
 
   return (
     <div className="space-y-6">
-      {/* Banner de Diagnóstico de Salud Crediticia */}
       <div className={`p-4 rounded-2xl border flex items-start gap-4 ${healthBadge.color}`}>
         <div className="p-2 rounded-xl bg-slate-900/40">
           <healthBadge.icon className="w-6 h-6" />
@@ -95,7 +91,6 @@ export default function CreditHealthCharts({ cards, globalMetrics }: CreditHealt
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Gráfica de Barras: Saldo al Corte vs Disponible por Tarjeta */}
         <div className="lg:col-span-2 glass-panel p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -126,7 +121,6 @@ export default function CreditHealthCharts({ cards, globalMetrics }: CreditHealt
           </div>
         </div>
 
-        {/* Gráfica de Dona: Ratio de Utilización de Crédito Global */}
         <div className="glass-panel p-6 flex flex-col justify-between">
           <div>
             <h3 className="text-base font-bold text-white mb-1">Ratio de Utilización Global</h3>
