@@ -14,13 +14,10 @@ import {
   Trash2,
   X,
   Edit2,
-  Calendar,
   AlertTriangle,
   CheckCircle,
   Clock,
-  ArrowRight,
   ShieldAlert,
-  Percent,
 } from 'lucide-react';
 
 export default function AccountsPage() {
@@ -37,7 +34,6 @@ export default function AccountsPage() {
   const [name, setName] = useState('');
   const [type, setType] = useState('BANK');
   const [balance, setBalance] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
   const [color, setColor] = useState('#6366f1');
   const [cutoffDay, setCutoffDay] = useState('');
   const [paymentDueDay, setPaymentDueDay] = useState('');
@@ -76,7 +72,6 @@ export default function AccountsPage() {
     setName('');
     setType('BANK');
     setBalance('');
-    setAccountNumber('');
     setColor('#6366f1');
     setCutoffDay('');
     setPaymentDueDay('');
@@ -90,7 +85,6 @@ export default function AccountsPage() {
     setName(acc.name || '');
     setType(acc.type || 'BANK');
     setBalance(acc.balance !== undefined ? String(acc.balance) : '0');
-    setAccountNumber(acc.accountNumber || '');
     setColor(acc.color || '#6366f1');
     setCutoffDay(acc.cutoffDay ? String(acc.cutoffDay) : '');
     setPaymentDueDay(acc.paymentDueDay ? String(acc.paymentDueDay) : '');
@@ -110,12 +104,11 @@ export default function AccountsPage() {
       const payload = {
         name,
         type,
-        balance: parseFloat(balance || '0'),
-        accountNumber,
+        balance: balance ? parseFloat(balance) : 0,
         color,
-        cutoffDay: type === 'CREDIT' ? cutoffDay : null,
-        paymentDueDay: type === 'CREDIT' ? paymentDueDay : null,
-        creditLimit: type === 'CREDIT' ? creditLimit : null,
+        cutoffDay: type === 'CREDIT' && cutoffDay ? parseInt(cutoffDay, 10) : null,
+        paymentDueDay: type === 'CREDIT' && paymentDueDay ? parseInt(paymentDueDay, 10) : null,
+        creditLimit: type === 'CREDIT' && creditLimit ? parseFloat(creditLimit) : null,
       };
 
       let res;
@@ -133,7 +126,8 @@ export default function AccountsPage() {
         });
       }
 
-      if (!res.ok) throw new Error('Error al guardar la cuenta');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al guardar la cuenta');
 
       setIsAccModalOpen(false);
       loadData();
@@ -223,9 +217,7 @@ export default function AccountsPage() {
                               </div>
                               <div>
                                 <h3 className="font-bold text-white text-base">{card.accountName}</h3>
-                                {card.accountNumber && (
-                                  <p className="text-xs font-mono text-slate-400">•••• {card.accountNumber.slice(-4)}</p>
-                                )}
+                                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Tarjeta de Crédito</span>
                               </div>
                             </div>
 
@@ -390,10 +382,6 @@ export default function AccountsPage() {
                         </div>
                       </div>
 
-                      {acc.accountNumber && (
-                        <p className="text-xs font-mono text-slate-400 mb-2">{acc.accountNumber}</p>
-                      )}
-
                       {acc.type === 'CREDIT' && (acc.cutoffDay || acc.paymentDueDay) && (
                         <div className="text-[11px] text-indigo-300 bg-indigo-500/10 p-2 rounded-lg border border-indigo-500/20 mb-3 space-y-0.5">
                           {acc.cutoffDay && <p>• Día de corte: {acc.cutoffDay} de cada mes</p>}
@@ -515,17 +503,6 @@ export default function AccountsPage() {
                     value={balance}
                     onChange={(e) => setBalance(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Número de Cuenta / Tarjeta (Opcional)</label>
-                  <input
-                    type="text"
-                    placeholder="Ej. 4500 1234 5678 9012"
-                    value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm font-mono"
                   />
                 </div>
 

@@ -2,7 +2,6 @@ export interface CreditCardSummary {
   accountId: string;
   accountName: string;
   color: string;
-  accountNumber?: string | null;
   balance: number;
   creditLimit: number;
   availableCredit: number;
@@ -37,7 +36,6 @@ export function calculateCreditCardMetrics(account: {
   id: string;
   name: string;
   color: string;
-  accountNumber?: string | null;
   balance: number;
   creditLimit?: number | null;
   cutoffDay?: number | null;
@@ -151,7 +149,6 @@ export function calculateCreditCardMetrics(account: {
     accountId: account.id,
     accountName: account.name,
     color: account.color,
-    accountNumber: account.accountNumber,
     balance: currentBalance,
     creditLimit,
     availableCredit,

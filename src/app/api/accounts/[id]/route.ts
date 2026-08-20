@@ -2,27 +2,50 @@ import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
 
+function parseNullableInt(val: any): number | null {
+  if (val === null || val === undefined || val === '') return null;
+  const parsed = parseInt(String(val), 10);
+  return isNaN(parsed) ? null : parsed;
+}
+
+function parseNullableFloat(val: any): number | null {
+  if (val === null || val === undefined || val === '') return null;
+  const parsed = parseFloat(String(val));
+  return isNaN(parsed) ? null : parsed;
+}
+
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
   const { id } = await params;
-  const { name, type, balance, color, icon, accountNumber, cutoffDay, paymentDueDay, creditLimit } = await request.json();
+  const body = await request.json();
+  const { name, type, balance, color, icon, cutoffDay, paymentDueDay, creditLimit } = body;
 
   try {
+    const updateData: any = {
+      name,
+      type,
+      color,
+      icon,
+    };
+
+    if (balance !== undefined) {
+      updateData.balance = parseNullableFloat(balance) ?? 0;
+    }
+    if (cutoffDay !== undefined) {
+      updateData.cutoffDay = parseNullableInt(cutoffDay);
+    }
+    if (paymentDueDay !== undefined) {
+      updateData.paymentDueDay = parseNullableInt(paymentDueDay);
+    }
+    if (creditLimit !== undefined) {
+      updateData.creditLimit = parseNullableFloat(creditLimit);
+    }
+
     const updated = await prisma.account.updateMany({
       where: { id, userId: session.id },
-      data: {
-        name,
-        type,
-        balance: balance !== undefined ? parseFloat(balance) : undefined,
-        color,
-        icon,
-        accountNumber,
-        cutoffDay: cutoffDay !== undefined ? (cutoffDay ? parseInt(cutoffDay, 10) : null) : undefined,
-        paymentDueDay: paymentDueDay !== undefined ? (paymentDueDay ? parseInt(paymentDueDay, 10) : null) : undefined,
-        creditLimit: creditLimit !== undefined ? (creditLimit ? parseFloat(creditLimit) : null) : undefined,
-      },
+      data: updateData,
     });
 
     if (updated.count === 0) {

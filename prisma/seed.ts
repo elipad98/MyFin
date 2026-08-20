@@ -69,7 +69,6 @@ async function main() {
         currency: 'MXN',
         color: '#1d4ed8',
         icon: 'landmark',
-        accountNumber: '**** 4589',
       },
     });
 
@@ -94,7 +93,6 @@ async function main() {
         currency: 'MXN',
         color: '#0284c7',
         icon: 'credit-card',
-        accountNumber: '**** 1204',
         cutoffDay: 15,
         paymentDueDay: 5,
         creditLimit: 15000.00,
@@ -110,7 +108,6 @@ async function main() {
         currency: 'MXN',
         color: '#8b5cf6',
         icon: 'credit-card',
-        accountNumber: '**** 8841',
         cutoffDay: 25,
         paymentDueDay: 15,
         creditLimit: 25000.00,
