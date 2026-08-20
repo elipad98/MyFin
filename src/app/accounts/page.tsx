@@ -18,6 +18,11 @@ import {
   CheckCircle,
   Clock,
   ShieldAlert,
+  Banknote,
+  History,
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 export default function AccountsPage() {
@@ -30,6 +35,7 @@ export default function AccountsPage() {
   const [isAccModalOpen, setIsAccModalOpen] = useState(false);
   const [editingAccountId, setEditingAccountId] = useState<string | null>(null);
 
+  // Account form state
   const [name, setName] = useState('');
   const [type, setType] = useState('BANK');
   const [balance, setBalance] = useState('');
@@ -38,6 +44,21 @@ export default function AccountsPage() {
   const [paymentDueDay, setPaymentDueDay] = useState('');
   const [creditLimit, setCreditLimit] = useState('');
   const [error, setError] = useState('');
+
+  // Payment modal state
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [payAccountId, setPayAccountId] = useState('');
+  const [payAccountName, setPayAccountName] = useState('');
+  const [payAmount, setPayAmount] = useState('');
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [payMethod, setPayMethod] = useState('TRANSFER');
+  const [payNotes, setPayNotes] = useState('');
+  const [payError, setPayError] = useState('');
+  const [payLoading, setPayLoading] = useState(false);
+
+  // Payment history state
+  const [paymentHistory, setPaymentHistory] = useState<Record<string, any[]>>({});
+  const [expandedPayments, setExpandedPayments] = useState<Record<string, boolean>>({});
 
   const loadData = async () => {
     try {
@@ -55,6 +76,18 @@ export default function AccountsPage() {
 
       setAccounts(accsRes);
       setCreditSummary(creditRes);
+
+      // Load payment history for each credit card
+      const creditAccs = accsRes.filter((a: any) => a.type === 'CREDIT');
+      const historyPromises = creditAccs.map((acc: any) =>
+        fetch(`/api/accounts/payments?accountId=${acc.id}`).then((r) => r.json())
+      );
+      const histories = await Promise.all(historyPromises);
+      const historyMap: Record<string, any[]> = {};
+      creditAccs.forEach((acc: any, idx: number) => {
+        historyMap[acc.id] = histories[idx];
+      });
+      setPaymentHistory(historyMap);
     } catch {
       // Ignorado
     } finally {
@@ -90,6 +123,17 @@ export default function AccountsPage() {
     setCreditLimit(acc.creditLimit ? String(acc.creditLimit) : '');
     setError('');
     setIsAccModalOpen(true);
+  };
+
+  const openPaymentModal = (accountId: string, accountName: string) => {
+    setPayAccountId(accountId);
+    setPayAccountName(accountName);
+    setPayAmount('');
+    setPayDate(new Date().toISOString().split('T')[0]);
+    setPayMethod('TRANSFER');
+    setPayNotes('');
+    setPayError('');
+    setIsPayModalOpen(true);
   };
 
   const handleSaveAccount = async (e: React.FormEvent) => {
@@ -135,13 +179,59 @@ export default function AccountsPage() {
     }
   };
 
+  const handleRegisterPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payAmount || parseFloat(payAmount) <= 0) {
+      setPayError('El monto debe ser mayor a $0');
+      return;
+    }
+
+    setPayLoading(true);
+    setPayError('');
+
+    try {
+      const res = await fetch('/api/accounts/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accountId: payAccountId,
+          amount: parseFloat(payAmount),
+          paymentDate: payDate,
+          method: payMethod,
+          notes: payNotes || null,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al registrar pago');
+
+      setIsPayModalOpen(false);
+      loadData();
+    } catch (err: any) {
+      setPayError(err.message);
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
   const handleDeleteAccount = async (id: string) => {
     if (!confirm('¿Seguro que deseas eliminar esta cuenta?')) return;
     await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
     loadData();
   };
 
+  const togglePaymentHistory = (accountId: string) => {
+    setExpandedPayments((prev) => ({ ...prev, [accountId]: !prev[accountId] }));
+  };
+
   const totalNet = accounts.reduce((acc, a) => acc + a.balance, 0);
+
+  const methodLabels: Record<string, string> = {
+    TRANSFER: 'Transferencia / SPEI',
+    CASH: 'Efectivo / Ventanilla',
+    CARD: 'Con otra Tarjeta',
+    OTHER: 'Otro método',
+  };
 
   return (
     <div className="flex min-h-screen bg-[#070b14]">
@@ -194,6 +284,8 @@ export default function AccountsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {creditSummary.cards.map((card: any) => {
                     const originalAccount = accounts.find((a) => a.id === card.accountId);
+                    const cardPayments = paymentHistory[card.accountId] || [];
+                    const isExpanded = expandedPayments[card.accountId] || false;
 
                     return (
                       <div
@@ -312,6 +404,62 @@ export default function AccountsPage() {
                               <span className="font-semibold text-slate-300">{card.utilizationRate}% Uso</span>
                             </div>
                           </div>
+
+                          {/* Botón Registrar Pago */}
+                          <button
+                            onClick={() => openPaymentModal(card.accountId, card.accountName)}
+                            className="mt-4 w-full py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30 transition-all"
+                          >
+                            <Banknote className="w-4.5 h-4.5" />
+                            Registrar Pago
+                          </button>
+
+                          {/* Historial de pagos */}
+                          {cardPayments.length > 0 && (
+                            <div className="mt-3">
+                              <button
+                                onClick={() => togglePaymentHistory(card.accountId)}
+                                className="w-full flex items-center justify-between text-xs text-slate-400 hover:text-slate-200 py-1.5 transition-colors"
+                              >
+                                <span className="flex items-center gap-1.5 font-semibold">
+                                  <History className="w-3.5 h-3.5" />
+                                  Historial de Pagos ({cardPayments.length})
+                                </span>
+                                {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                              </button>
+
+                              {isExpanded && (
+                                <div className="mt-2 space-y-2 max-h-48 overflow-y-auto pr-1">
+                                  {cardPayments.map((pay: any) => (
+                                    <div
+                                      key={pay.id}
+                                      className="bg-slate-900/60 rounded-lg p-2.5 border border-slate-800 flex items-center justify-between"
+                                    >
+                                      <div className="flex items-center gap-2.5">
+                                        <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                                          <CalendarDays className="w-4 h-4 text-emerald-400" />
+                                        </div>
+                                        <div>
+                                          <span className="text-xs font-bold text-emerald-400 block">
+                                            -${pay.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                          </span>
+                                          <span className="text-[10px] text-slate-400">
+                                            {new Date(pay.paymentDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            {' · '}{methodLabels[pay.method] || pay.method}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      {pay.notes && (
+                                        <span className="text-[10px] text-slate-500 max-w-[80px] truncate" title={pay.notes}>
+                                          {pay.notes}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -390,6 +538,7 @@ export default function AccountsPage() {
           </div>
         )}
 
+        {/* Modal: Crear/Editar Cuenta */}
         {isAccModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
             <div className="bg-[#131b2e] border border-slate-700/80 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl p-6">
@@ -504,6 +653,100 @@ export default function AccountsPage() {
                 <div className="pt-3">
                   <button type="submit" className="w-full py-3 gradient-button font-bold text-sm rounded-xl shadow-lg">
                     {editingAccountId ? 'Guardar Cambios' : 'Crear Cuenta'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Registrar Pago de Tarjeta */}
+        {isPayModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div className="bg-[#131b2e] border border-slate-700/80 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl p-6">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800">
+                <div>
+                  <h3 className="font-bold text-white text-lg flex items-center gap-2">
+                    <Banknote className="w-5 h-5 text-emerald-400" />
+                    Registrar Pago
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">{payAccountName}</p>
+                </div>
+                <button onClick={() => setIsPayModalOpen(false)} className="text-slate-400 hover:text-white">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleRegisterPayment} className="space-y-4">
+                {payError && (
+                  <div className="p-3 text-xs bg-rose-500/20 text-rose-300 rounded-xl border border-rose-500/30">{payError}</div>
+                )}
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Monto Pagado ($ MXN) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    placeholder="Ej. 15000.00"
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-lg font-extrabold"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Fecha del Pago *</label>
+                  <input
+                    type="date"
+                    required
+                    value={payDate}
+                    onChange={(e) => setPayDate(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Método de Pago</label>
+                  <select
+                    value={payMethod}
+                    onChange={(e) => setPayMethod(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm"
+                  >
+                    <option value="TRANSFER">Transferencia / SPEI</option>
+                    <option value="CASH">Efectivo / Ventanilla</option>
+                    <option value="CARD">Con otra Tarjeta</option>
+                    <option value="OTHER">Otro método</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Notas (opcional)</label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Pago quincenal, pago mínimo..."
+                    value={payNotes}
+                    onChange={(e) => setPayNotes(e.target.value)}
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm"
+                  />
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={payLoading}
+                    className="w-full py-3 rounded-xl font-bold text-sm shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {payLoading ? (
+                      'Registrando...'
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4.5 h-4.5" />
+                        Confirmar Pago
+                      </>
+                    )}
                   </button>
                 </div>
               </form>
