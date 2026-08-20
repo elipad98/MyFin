@@ -25,4 +25,4 @@ COPY --from=builder /app/prisma ./prisma
 EXPOSE 3000
 
 # Copiar el schema actualizado a /data, luego ejecutar prisma con la BD en /data
-CMD ["sh", "-c", "cp /app/prisma/schema.prisma /data/schema.prisma && DATABASE_URL=file:/data/dev.db npx prisma db push --schema=/app/prisma/schema.prisma && DATABASE_URL=file:/data/dev.db npx tsx prisma/seed.ts && DATABASE_URL=file:/data/dev.db npm start"]
+CMD ["sh", "-c", "cp /app/prisma/schema.prisma /data/schema.prisma && DATABASE_URL=file:/data/dev.db npx prisma db push --accept-data-loss --schema=/app/prisma/schema.prisma && DATABASE_URL=file:/data/dev.db npx tsx prisma/seed.ts && DATABASE_URL=file:/data/dev.db npm start"]
