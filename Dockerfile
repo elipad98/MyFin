@@ -2,10 +2,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-COPY prisma ./prisma/
-RUN npm ci --legacy-peer-deps
-
 COPY . .
+RUN npm ci --legacy-peer-deps
 RUN npx prisma generate
 RUN npm run build
 
