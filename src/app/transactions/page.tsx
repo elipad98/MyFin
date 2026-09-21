@@ -6,6 +6,7 @@ import Navigation from '@/components/Navigation';
 import Header from '@/components/Header';
 import TransactionModal from '@/components/TransactionModal';
 import { Search, Filter, Trash2, ArrowUpRight, ArrowDownRight, Download } from 'lucide-react';
+import { formatDateOnly } from '@/lib/dateUtils';
 
 export default function TransactionsPage() {
   const router = useRouter();
@@ -146,7 +147,7 @@ export default function TransactionsPage() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-xs text-slate-400">
-                        {new Date(tx.date).toLocaleDateString('es-MX')}
+                        {formatDateOnly(tx.date)}
                       </td>
                       <td className={`px-6 py-4 text-right font-bold text-base ${tx.type === 'INCOME' ? 'text-emerald-400' : 'text-slate-100'}`}>
                         {tx.type === 'INCOME' ? '+' : '-'}${tx.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}

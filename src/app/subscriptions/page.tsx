@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Sparkles,
 } from 'lucide-react';
+import { getLocalDateString, formatDateOnly } from '@/lib/dateUtils';
 
 export default function SubscriptionsPage() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export default function SubscriptionsPage() {
   const [provider, setProvider] = useState('');
   const [amount, setAmount] = useState('');
   const [billingCycle, setBillingCycle] = useState('MONTHLY');
-  const [nextRenewal, setNextRenewal] = useState(new Date().toISOString().split('T')[0]);
+  const [nextRenewal, setNextRenewal] = useState(getLocalDateString());
   const [category, setCategory] = useState('Streaming');
   const [color, setColor] = useState('#e11d48');
   const [logo, setLogo] = useState('');
@@ -272,7 +273,7 @@ export default function SubscriptionsPage() {
                               <Calendar className="w-3.5 h-3.5 text-indigo-400" /> Próx. Renovación:
                             </span>
                             <span className={`font-semibold ${isSoon ? 'text-amber-400 font-bold animate-pulse' : 'text-slate-200'}`}>
-                              {renewalDate.toLocaleDateString('es-MX')}
+                              {formatDateOnly(sub.nextRenewal)}
                             </span>
                           </div>
 

@@ -7,6 +7,7 @@ import Header from '@/components/Header';
 import TransactionModal from '@/components/TransactionModal';
 import CreditHealthCharts from '@/components/CreditHealthCharts';
 import CreditTips from '@/components/CreditTips';
+import { formatDateOnly, formatDateShort, getLocalDateString } from '@/lib/dateUtils';
 import {
   Wallet,
   Plus,
@@ -50,7 +51,7 @@ export default function AccountsPage() {
   const [payAccountId, setPayAccountId] = useState('');
   const [payAccountName, setPayAccountName] = useState('');
   const [payAmount, setPayAmount] = useState('');
-  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [payDate, setPayDate] = useState(getLocalDateString());
   const [payMethod, setPayMethod] = useState('TRANSFER');
   const [payNotes, setPayNotes] = useState('');
   const [payError, setPayError] = useState('');
@@ -224,7 +225,13 @@ export default function AccountsPage() {
     setExpandedPayments((prev) => ({ ...prev, [accountId]: !prev[accountId] }));
   };
 
-  const totalNet = accounts.reduce((acc, a) => acc + a.balance, 0);
+  const totalNet = accounts.reduce((acc, a) => {
+    if (a.type === 'CREDIT') {
+      const debt = a.balance < 0 ? Math.abs(a.balance) : a.balance;
+      return acc - debt;
+    }
+    return acc + a.balance;
+  }, 0);
 
   const methodLabels: Record<string, string> = {
     TRANSFER: 'Transferencia / SPEI',
@@ -353,32 +360,61 @@ export default function AccountsPage() {
                             )}
                           </div>
 
-                          <div className="bg-slate-900/70 rounded-xl p-3.5 mb-4 border border-slate-800">
-                            <span className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider block">
-                              Monto a Pagar (Corte Anterior)
-                            </span>
-                            <div className="flex items-baseline justify-between mt-1">
-                              <span className="text-xl font-black text-rose-400">
-                                ${card.statementBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          {/* Bloques de Monto a Pagar y Consumo del Mes */}
+                          <div className="grid grid-cols-2 gap-2.5 mb-4">
+                            <div className="bg-slate-900/80 rounded-xl p-3 border border-slate-800 flex flex-col justify-between">
+                              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                Monto a Pagar
                               </span>
-                              <span className="text-[10px] text-slate-400 font-medium">No generar intereses</span>
+                              <div className="mt-1">
+                                <span className="text-lg font-black text-rose-400 block">
+                                  ${card.statementBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-medium">
+                                  {card.hasCutoffConfigured ? 'Para no generar intereses' : 'Saldo pendiente'}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="bg-slate-900/80 rounded-xl p-3 border border-slate-800 flex flex-col justify-between">
+                              <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">
+                                Gastado este Mes
+                              </span>
+                              <div className="mt-1">
+                                <span className="text-lg font-black text-indigo-400 block">
+                                  ${card.currentCycleBalance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-medium">Consumo periodo actual</span>
+                              </div>
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3 text-xs mb-4">
-                            <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
-                              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Día de Corte</span>
-                              <span className="font-extrabold text-white text-sm">
-                                Día {card.cutoffDay} ({card.daysUntilCutoff}d faltan)
-                              </span>
+                          {card.hasCutoffConfigured ? (
+                            <div className="grid grid-cols-2 gap-3 text-xs mb-4">
+                              <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
+                                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Día de Corte</span>
+                                <span className="font-extrabold text-white text-sm">
+                                  Día {card.cutoffDay} ({card.daysUntilCutoff}d faltan)
+                                </span>
+                              </div>
+                              <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
+                                <span className="text-slate-400 block text-[10px] uppercase font-semibold">Límite de Pago</span>
+                                <span className="font-extrabold text-amber-400 text-sm">
+                                  Día {card.paymentDueDay} ({formatDateShort(card.paymentDueDate)})
+                                </span>
+                              </div>
                             </div>
-                            <div className="bg-slate-900/40 p-2.5 rounded-xl border border-slate-800">
-                              <span className="text-slate-400 block text-[10px] uppercase font-semibold">Límite de Pago</span>
-                              <span className="font-extrabold text-amber-400 text-sm">
-                                Día {card.paymentDueDay} ({new Date(card.paymentDueDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })})
-                              </span>
+                          ) : (
+                            <div className="mb-4 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+                              <span>⚠️ Fechas de corte no configuradas</span>
+                              <button
+                                onClick={() => openEditModal(originalAccount || { id: card.accountId, name: card.accountName, type: 'CREDIT', balance: card.balance, color: card.color })}
+                                className="text-[11px] underline font-bold text-white hover:text-amber-200 shrink-0"
+                              >
+                                Configurar
+                              </button>
                             </div>
-                          </div>
+                          )}
 
                           <div className="space-y-1.5 pt-2 border-t border-slate-800">
                             <div className="flex items-center justify-between text-xs">
@@ -525,10 +561,26 @@ export default function AccountsPage() {
                       )}
 
                       <div className="mt-4 pt-4 border-t border-slate-800">
-                        <span className="text-xs text-slate-400">Saldo Registrado</span>
-                        <p className={`text-2xl font-extrabold mt-0.5 ${acc.balance < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                          ${acc.balance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                        </p>
+                        {acc.type === 'CREDIT' ? (
+                          <div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-slate-400">Deuda Actual</span>
+                              <span className="text-[10px] text-slate-400">
+                                Límite: ${acc.creditLimit ? acc.creditLimit.toLocaleString('es-MX') : 'Sin asignar'}
+                              </span>
+                            </div>
+                            <p className="text-2xl font-extrabold mt-0.5 text-rose-400">
+                              ${(acc.balance < 0 ? Math.abs(acc.balance) : acc.balance).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="text-xs text-slate-400">Saldo Disponible</span>
+                            <p className={`text-2xl font-extrabold mt-0.5 ${acc.balance < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                              ${acc.balance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

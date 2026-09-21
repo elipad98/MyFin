@@ -11,6 +11,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     const existing = await prisma.transaction.findFirst({
       where: { id, userId: session.id },
+      include: { account: true },
     });
 
     if (!existing) {
@@ -19,7 +20,17 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     await prisma.$transaction(async (tx) => {
       // Reverse balance change
-      const balanceReversal = existing.type === 'INCOME' ? -existing.amount : existing.amount;
+      const isCredit = existing.account.type === 'CREDIT';
+      let balanceReversal = 0;
+
+      if (isCredit) {
+        // En tarjetas de crédito: eliminar un gasto resta de la deuda (-), eliminar un ingreso suma a la deuda (+)
+        balanceReversal = existing.type === 'EXPENSE' ? -existing.amount : existing.amount;
+      } else {
+        // En cuentas regulares: eliminar un ingreso resta del saldo (-), eliminar un gasto devuelve el saldo (+)
+        balanceReversal = existing.type === 'INCOME' ? -existing.amount : existing.amount;
+      }
+
       await tx.account.update({
         where: { id: existing.accountId },
         data: { balance: { increment: balanceReversal } },

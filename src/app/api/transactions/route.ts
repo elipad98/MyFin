@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { parseDateSafe } from '@/lib/dateUtils';
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -64,7 +65,7 @@ export async function POST(request: Request) {
           type: type || 'EXPENSE',
           description,
           notes,
-          date: date ? new Date(date) : new Date(),
+          date: parseDateSafe(date),
         },
         include: {
           account: true,
@@ -73,7 +74,19 @@ export async function POST(request: Request) {
       });
 
       // Update account balance
-      const balanceChange = type === 'INCOME' ? numAmount : -numAmount;
+      const isCredit = createdTx.account.type === 'CREDIT';
+      let balanceChange = 0;
+
+      if (isCredit) {
+        // En tarjetas de crédito: balance = deuda.
+        // Un gasto AUMENTA la deuda (+), un ingreso/pago DISMINUYE la deuda (-).
+        balanceChange = (type || 'EXPENSE') === 'EXPENSE' ? numAmount : -numAmount;
+      } else {
+        // En cuentas de débito/efectivo: balance = dinero disponible.
+        // Un ingreso AUMENTA el saldo (+), un gasto DISMINUYE el saldo (-).
+        balanceChange = type === 'INCOME' ? numAmount : -numAmount;
+      }
+
       await tx.account.update({
         where: { id: accountId },
         data: { balance: { increment: balanceChange } },

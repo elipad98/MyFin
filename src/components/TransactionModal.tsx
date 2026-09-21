@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Check, DollarSign } from 'lucide-react';
+import { getLocalDateString } from '@/lib/dateUtils';
 
 interface Account {
   id: string;
@@ -29,7 +30,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess }: Transac
   const [description, setDescription] = useState('');
   const [accountId, setAccountId] = useState('');
   const [categoryId, setCategoryId] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(getLocalDateString());
   const [notes, setNotes] = useState('');
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -186,7 +187,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess }: Transac
               >
                 {accounts.map((acc) => (
                   <option key={acc.id} value={acc.id}>
-                    {acc.name}
+                    {acc.name} {acc.type === 'CREDIT' ? '💳 (Crédito)' : acc.type === 'BANK' ? '🏦 (Banco)' : acc.type === 'CASH' ? '💵 (Efectivo)' : ''}
                   </option>
                 ))}
               </select>

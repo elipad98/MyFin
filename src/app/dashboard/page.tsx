@@ -29,6 +29,7 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts';
+import { formatDateOnly, formatDateShort } from '@/lib/dateUtils';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -75,7 +76,13 @@ export default function DashboardPage() {
     loadData();
   }, []);
 
-  const totalBalance = accounts.reduce((acc, a) => acc + a.balance, 0);
+  const totalBalance = accounts.reduce((acc, a) => {
+    if (a.type === 'CREDIT') {
+      const debt = a.balance < 0 ? Math.abs(a.balance) : a.balance;
+      return acc - debt;
+    }
+    return acc + a.balance;
+  }, 0);
   const activeSubsCount = subscriptions.filter((s) => s.status === 'ACTIVE').length;
   const upcomingRenewal = subscriptions.find((s) => s.status === 'ACTIVE');
 
@@ -202,7 +209,7 @@ export default function DashboardPage() {
                           <h4 className="text-sm font-bold text-white flex items-center gap-2">
                             <span>Vencimiento de Tarjeta: {card.accountName}</span>
                             <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-slate-900/60 border border-slate-700">
-                              Día Límite: {new Date(card.paymentDueDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
+                              Día Límite: {formatDateShort(card.paymentDueDate)}
                             </span>
                           </h4>
                           <p className="text-xs text-slate-300 mt-0.5">
@@ -358,12 +365,19 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <h4 className="text-sm font-semibold text-white">{acc.name}</h4>
-                          <span className="text-[10px] text-slate-400 uppercase font-medium">{acc.type}</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-medium">
+                            {acc.type === 'CREDIT' ? 'Tarjeta de Crédito' : acc.type}
+                          </span>
                         </div>
                       </div>
-                      <span className={`text-sm font-bold ${acc.balance < 0 ? 'text-rose-400' : 'text-slate-100'}`}>
-                        ${acc.balance.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                      </span>
+                      <div className="text-right">
+                        <span className={`text-sm font-bold ${acc.type === 'CREDIT' ? 'text-rose-400' : acc.balance < 0 ? 'text-rose-400' : 'text-slate-100'}`}>
+                          ${(acc.type === 'CREDIT' ? (acc.balance < 0 ? Math.abs(acc.balance) : acc.balance) : acc.balance).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                        </span>
+                        {acc.type === 'CREDIT' && (
+                          <span className="block text-[10px] text-slate-400">Deuda actual</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -400,7 +414,7 @@ export default function DashboardPage() {
                                 </>
                               )}
                               <span>•</span>
-                              <span>{new Date(tx.date).toLocaleDateString('es-MX')}</span>
+                              <span>{formatDateOnly(tx.date)}</span>
                             </div>
                           </div>
                         </div>

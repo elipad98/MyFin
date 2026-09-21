@@ -8,6 +8,7 @@ export interface CreditCardSummary {
   utilizationRate: number; // 0 to 100%
   cutoffDay: number;
   paymentDueDay: number;
+  hasCutoffConfigured: boolean;
   lastCutoffDate: string; // ISO String
   nextCutoffDate: string; // ISO String
   paymentDueDate: string; // ISO String
@@ -39,17 +40,66 @@ export function calculateCreditCardMetrics(account: {
     type: string;
     date: Date | string;
   }>;
-}): CreditCardSummary | null {
-  if (!account.cutoffDay || !account.paymentDueDay) {
-    return null;
-  }
-
+}): CreditCardSummary {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
-  const cutoffDay = Math.max(1, Math.min(31, account.cutoffDay));
-  const paymentDueDay = Math.max(1, Math.min(31, account.paymentDueDay));
   const creditLimit = account.creditLimit || 0;
+
+  // En caso de que el saldo sea negativo por el error de signo previo, corregir a valor absoluto
+  const rawBalance = account.balance || 0;
+  const currentBalance = rawBalance < 0 ? Math.abs(rawBalance) : rawBalance;
+  const availableCredit = Math.max(0, creditLimit - currentBalance);
+  const utilizationRate = creditLimit > 0 ? Math.min(100, Math.round((currentBalance / creditLimit) * 100)) : 0;
+
+  const hasCutoffConfigured = Boolean(account.cutoffDay && account.paymentDueDay);
+
+  // Si no tiene fechas de corte configuradas, proveer métricas útiles en lugar de descartar la tarjeta
+  if (!hasCutoffConfigured) {
+    const txs = account.transactions || [];
+    let currentMonthExpenses = 0;
+    const startOfMonth = new Date(currentYear, currentMonth, 1);
+
+    txs.forEach((tx) => {
+      const txDate = new Date(tx.date);
+      if (txDate >= startOfMonth && txDate <= today && tx.type === 'EXPENSE') {
+        currentMonthExpenses += tx.amount;
+      }
+    });
+
+    let healthLevel: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'CRITICAL' = 'EXCELLENT';
+    if (utilizationRate > 80) healthLevel = 'CRITICAL';
+    else if (utilizationRate > 50) healthLevel = 'WARNING';
+    else if (utilizationRate > 30) healthLevel = 'GOOD';
+
+    return {
+      accountId: account.id,
+      accountName: account.name,
+      color: account.color,
+      balance: currentBalance,
+      creditLimit,
+      availableCredit,
+      utilizationRate,
+      cutoffDay: account.cutoffDay || 0,
+      paymentDueDay: account.paymentDueDay || 0,
+      hasCutoffConfigured: false,
+      lastCutoffDate: today.toISOString(),
+      nextCutoffDate: today.toISOString(),
+      paymentDueDate: today.toISOString(),
+      statementBalance: currentBalance,
+      currentCycleBalance: currentMonthExpenses > 0 ? currentMonthExpenses : currentBalance,
+      daysUntilCutoff: 0,
+      daysUntilPaymentDue: 0,
+      status: currentBalance > 0 ? 'IN_PROGRESS' : 'PAID',
+      statusMessage: currentBalance > 0
+        ? 'Configura el día de corte y día límite para calcular fechas exactas.'
+        : '¡Sin deuda pendiente!',
+      healthLevel,
+    };
+  }
+
+  const cutoffDay = Math.max(1, Math.min(31, account.cutoffDay!));
+  const paymentDueDay = Math.max(1, Math.min(31, account.paymentDueDay!));
 
   let lastCutoff: Date;
   let nextCutoff: Date;
@@ -89,10 +139,17 @@ export function calculateCreditCardMetrics(account: {
     }
   });
 
-  const statementBalance = Math.max(0, statementExpenses - statementPayments);
-  const currentBalance = Math.max(0, account.balance);
-  const availableCredit = Math.max(0, creditLimit - currentBalance);
-  const utilizationRate = creditLimit > 0 ? Math.min(100, Math.round((currentBalance / creditLimit) * 100)) : 0;
+  let statementBalance = Math.max(0, statementExpenses - statementPayments);
+
+  // Si no hay transacciones en el periodo anterior pero existe saldo deudor registrado en la cuenta,
+  // el saldo exigible al corte es el saldo pendiente total menos los consumos recientes del nuevo periodo.
+  if (statementExpenses === 0 && currentBalance > 0) {
+    if (currentCycleExpenses > 0 && currentBalance > currentCycleExpenses) {
+      statementBalance = currentBalance - currentCycleExpenses;
+    } else if (currentCycleExpenses === 0) {
+      statementBalance = currentBalance;
+    }
+  }
 
   const msPerDay = 1000 * 60 * 60 * 24;
   const daysUntilCutoff = Math.max(0, Math.ceil((nextCutoff.getTime() - today.getTime()) / msPerDay));
@@ -101,9 +158,12 @@ export function calculateCreditCardMetrics(account: {
   let status: 'PAID' | 'DUE_SOON' | 'OVERDUE' | 'IN_PROGRESS' = 'IN_PROGRESS';
   let statusMessage = '';
 
-  if (statementBalance <= 0) {
+  if (currentBalance <= 0) {
     status = 'PAID';
-    statusMessage = '¡Corte pagado! Sin saldo pendiente para este periodo.';
+    statusMessage = '¡Tarjeta al corriente! Sin saldo pendiente.';
+  } else if (statementBalance <= 0) {
+    status = 'PAID';
+    statusMessage = `Corte anterior liquidado. Consumos actuales: $${currentCycleExpenses.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
   } else if (daysUntilPaymentDue < 0) {
     status = 'OVERDUE';
     statusMessage = `¡Atención! Fecha límite de pago vencida hace ${Math.abs(daysUntilPaymentDue)} días.`;
@@ -134,6 +194,7 @@ export function calculateCreditCardMetrics(account: {
     utilizationRate,
     cutoffDay,
     paymentDueDay,
+    hasCutoffConfigured: true,
     lastCutoffDate: lastCutoff.toISOString(),
     nextCutoffDate: nextCutoff.toISOString(),
     paymentDueDate: paymentDueDate.toISOString(),

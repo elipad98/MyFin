@@ -5,7 +5,20 @@ import { useRouter } from 'next/navigation';
 import Navigation from '@/components/Navigation';
 import Header from '@/components/Header';
 import TransactionModal from '@/components/TransactionModal';
-import { BarChart3, Download, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import {
+  BarChart3,
+  Download,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Bot,
+  Sparkles,
+  FileJson,
+  Copy,
+  Check,
+  FileSpreadsheet,
+} from 'lucide-react';
+import { formatDateOnly, getLocalDateString } from '@/lib/dateUtils';
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -13,6 +26,8 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [downloadingJSON, setDownloadingJSON] = useState(false);
 
   const loadData = async () => {
     try {
@@ -34,20 +49,79 @@ export default function ReportsPage() {
     loadData();
   }, []);
 
+  const handleExportJSON = async () => {
+    try {
+      setDownloadingJSON(true);
+      const res = await fetch('/api/export');
+      if (!res.ok) throw new Error('Error al exportar datos');
+      const data = await res.json();
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `MyFin_Finanzas_IA_${getLocalDateString()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert('Error al descargar el archivo para IA');
+    } finally {
+      setDownloadingJSON(false);
+    }
+  };
+
+  const handleCopyAIPrompt = async () => {
+    try {
+      const res = await fetch('/api/export');
+      if (!res.ok) throw new Error('Error al obtener datos');
+      const data = await res.json();
+
+      const promptText = `Actúa como un asesor financiero personal experto.
+A continuación tienes un reporte completo y estructurado de mis finanzas personales en México (moneda: ${data.metadataExportacion?.monedaPrincipal || 'MXN'}), incluyendo mi patrimonio, tarjetas de crédito, gastos del mes y suscripciones:
+
+\`\`\`json
+${JSON.stringify({
+  usuario: data.usuario,
+  resumenFinanciero: data.resumenFinancieroEjecutivo,
+  tarjetasDeCredito: data.tarjetasDeCredito,
+  cuentasBancarias: data.cuentasBancariasYefectivo,
+  suscripciones: data.suscripciones,
+  metasDeAhorro: data.metasDeAhorro,
+  ultimasTransacciones: data.transacciones?.slice(0, 30),
+}, null, 2)}
+\`\`\`
+
+Con base en esta información, por favor proporcióname:
+1. **Diagnóstico general**: Nivel de endeudamiento, utilización de tarjetas de crédito y salud financiera.
+2. **Optimización de gastos y suscripciones**: ¿Dónde hay fugas de dinero o gastos recurrentes que podría recortar?
+3. **Estrategia de pago de tarjetas**: ¿Cuánto y cuándo debo pagar para no generar intereses y qué tarjeta priorizar?
+4. **Plan de ahorro e inversión**: Recomendaciones prácticas para los próximos meses considerando mis metas.`;
+
+      await navigator.clipboard.writeText(promptText);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 3000);
+    } catch (e) {
+      alert('Error al copiar el prompt al portapapeles');
+    }
+  };
+
   const handleExportCSV = async () => {
     try {
       const txs = await (await fetch('/api/transactions?limit=1000')).json();
       let csvContent = 'data:text/csv;charset=utf-8,';
-      csvContent += 'Fecha,Descripción,Tipo,Cuenta,Categoría,Monto\n';
+      csvContent += 'Fecha,Descripción,Tipo,Cuenta,Categoría,Monto,Notas\n';
 
       txs.forEach((t: any) => {
         const row = [
-          new Date(t.date).toLocaleDateString('es-MX'),
-          `"${t.description.replace(/"/g, '""')}"`,
+          formatDateOnly(t.date),
+          `"${(t.description || '').replace(/"/g, '""')}"`,
           t.type,
-          `"${t.account?.name || ''}"`,
-          `"${t.category?.name || ''}"`,
+          `"${(t.account?.name || '').replace(/"/g, '""')}"`,
+          `"${(t.category?.name || '').replace(/"/g, '""')}"`,
           t.amount,
+          `"${(t.notes || '').replace(/"/g, '""')}"`,
         ].join(',');
         csvContent += row + '\n';
       });
@@ -55,12 +129,12 @@ export default function ReportsPage() {
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `MyFin_Reporte_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `MyFin_Reporte_${getLocalDateString()}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } catch (e) {
-      // Ignored
+      alert('Error al exportar CSV');
     }
   };
 
@@ -81,21 +155,53 @@ export default function ReportsPage() {
           <div className="text-center py-20 text-slate-400">Cargando reportes...</div>
         ) : (
           <div className="space-y-8">
-            <div className="glass-panel p-6 flex items-center justify-between border-cyan-500/20">
-              <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-cyan-400" /> Resumen Ejecutivo del Mes
-                </h2>
-                <p className="text-xs text-slate-400 mt-1">Exporta tu información en formato CSV para Excel</p>
-              </div>
+            {/* Panel de Exportación para IA y Hojas de Cálculo */}
+            <div className="glass-panel p-6 border-indigo-500/30 relative overflow-hidden bg-gradient-to-r from-indigo-950/40 via-purple-950/20 to-slate-900/60">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-bold mb-2.5">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Herramientas de Inteligencia Artificial</span>
+                  </div>
+                  <h2 className="text-xl font-extrabold text-white flex items-center gap-2">
+                    <Bot className="w-6 h-6 text-indigo-400" /> Exportar y Procesar tus Datos con IA
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    Descarga toda tu información financiera (cuentas, tarjetas de crédito, gastos del mes, suscripciones y metas) en formato estructurado para alimentar prompts en ChatGPT, Claude, Gemini o DeepSeek y obtener asesoría financiera personalizada.
+                  </p>
+                </div>
 
-              <button
-                onClick={handleExportCSV}
-                className="gradient-button px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                <span>Exportar CSV</span>
-              </button>
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                  <button
+                    onClick={handleCopyAIPrompt}
+                    className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all ${
+                      copiedPrompt
+                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30'
+                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20'
+                    }`}
+                  >
+                    {copiedPrompt ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedPrompt ? '¡Prompt Copiado!' : 'Copiar Prompt para IA'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportJSON}
+                    disabled={downloadingJSON}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-bold text-xs flex items-center gap-2 transition-all"
+                  >
+                    <FileJson className="w-4 h-4 text-amber-400" />
+                    <span>{downloadingJSON ? 'Preparando...' : 'Descargar JSON'}</span>
+                  </button>
+
+                  <button
+                    onClick={handleExportCSV}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-2 transition-all"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+                    <span>CSV (Excel)</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
             {/* Top Cards */}
