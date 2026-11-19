@@ -22,7 +22,7 @@ services:
     container_name: myfin-mcp
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3003:3001"
     environment:
       - DATABASE_URL=file:/data/dev.db
       - MCP_PORT=3001
