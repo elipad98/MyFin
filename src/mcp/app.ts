@@ -230,7 +230,7 @@ export function createMyFinMcpServer(): McpServer {
             categoryId: targetCategory?.id || null,
             amount: monto,
             type: tipo,
-            description,
+            description: descripcion,
             notes: notas || null,
             date: transactionDate,
           },
