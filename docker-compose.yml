@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   myfin:
     build:
       context: .
       dockerfile: Dockerfile
+    image: myfin:latest
     container_name: myfin-app
     restart: unless-stopped
     ports:
@@ -14,6 +13,25 @@ services:
       - JWT_SECRET=myfin-debian-homelab-super-secret-key-2026
     volumes:
       - myfin-data:/data
+
+  myfin-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: myfin:latest
+    container_name: myfin-mcp
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=file:/data/dev.db
+      - MCP_PORT=3001
+      - NODE_ENV=production
+    volumes:
+      - myfin-data:/data
+    command: sh -c "until [ -f /data/dev.db ]; do echo 'Esperando a que la base de datos sea inicializada...'; sleep 2; done; npm run mcp:sse"
+    depends_on:
+      - myfin
 
 volumes:
   myfin-data:
