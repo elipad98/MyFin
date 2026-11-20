@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
+import { parseDateSafe, formatDateOnly } from "../lib/dateUtils.js";
 
 /**
  * Esquema tolerante para montos numéricos o de texto (ej. 4446.46, -4446.46, "$4,446.46").
@@ -243,7 +244,7 @@ export function createMyFinMcpServer(): McpServer {
 
       const formatTx = transactions.map((t) => ({
         id: t.id,
-        fecha: t.date.toISOString().split("T")[0],
+        fecha: formatDateOnly(t.date),
         descripcion: t.description,
         monto: t.amount,
         tipo: t.type,
@@ -290,7 +291,7 @@ export function createMyFinMcpServer(): McpServer {
       }
 
       const targetCategory = await resolveCategory(categoria, user.id);
-      const transactionDate = fecha ? new Date(fecha) : new Date();
+      const transactionDate = parseDateSafe(fecha);
 
       const created = await prisma.$transaction(async (tx) => {
         const newTransaction = await tx.transaction.create({
@@ -390,7 +391,7 @@ export function createMyFinMcpServer(): McpServer {
             ...(descripcion !== undefined ? { description: descripcion } : {}),
             ...(tipo !== undefined ? { type: newType } : {}),
             ...(categoria !== undefined ? { categoryId } : {}),
-            ...(fecha !== undefined ? { date: new Date(fecha) } : {}),
+            ...(fecha !== undefined ? { date: parseDateSafe(fecha) } : {}),
             ...(notas !== undefined ? { notes: notas } : {}),
           },
           include: { account: true, category: true },

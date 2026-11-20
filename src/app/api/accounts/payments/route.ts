@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { parseDateSafe } from '@/lib/dateUtils';
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -63,7 +64,7 @@ export async function POST(request: Request) {
         data: {
           accountId,
           amount: parsedAmount,
-          paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
+          paymentDate: parseDateSafe(paymentDate),
           method: method || 'TRANSFER',
           notes: notes || null,
         },

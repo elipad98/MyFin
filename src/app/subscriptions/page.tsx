@@ -91,6 +91,7 @@ export default function SubscriptionsPage() {
       setName('');
       setProvider('');
       setAmount('');
+      setNextRenewal(getLocalDateString());
       setIsSubModalOpen(false);
       loadData();
     } catch (err: any) {

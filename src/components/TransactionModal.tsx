@@ -40,6 +40,8 @@ export default function TransactionModal({ isOpen, onClose, onSuccess }: Transac
 
   useEffect(() => {
     if (isOpen) {
+      setDate(getLocalDateString());
+      setError('');
       fetch('/api/accounts').then((res) => res.json()).then((data) => {
         setAccounts(data);
         if (data.length > 0 && !accountId) setAccountId(data[0].id);
@@ -84,6 +86,7 @@ export default function TransactionModal({ isOpen, onClose, onSuccess }: Transac
       setAmount('');
       setDescription('');
       setNotes('');
+      setDate(getLocalDateString());
       onSuccess();
       onClose();
     } catch (err: any) {

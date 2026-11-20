@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import prisma from '@/lib/prisma';
+import { parseDateSafe } from '@/lib/dateUtils';
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await getSession();
@@ -25,7 +26,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         provider: body.provider ?? existing.provider,
         amount: body.amount ? parseFloat(body.amount) : existing.amount,
         billingCycle: body.billingCycle ?? existing.billingCycle,
-        nextRenewal: body.nextRenewal ? new Date(body.nextRenewal) : existing.nextRenewal,
+        nextRenewal: body.nextRenewal ? parseDateSafe(body.nextRenewal) : existing.nextRenewal,
         category: body.category ?? existing.category,
         color: body.color ?? existing.color,
         logo: body.logo ?? existing.logo,

@@ -130,7 +130,7 @@ export default function AccountsPage() {
     setPayAccountId(accountId);
     setPayAccountName(accountName);
     setPayAmount('');
-    setPayDate(new Date().toISOString().split('T')[0]);
+    setPayDate(getLocalDateString());
     setPayMethod('TRANSFER');
     setPayNotes('');
     setPayError('');
@@ -480,7 +480,7 @@ export default function AccountsPage() {
                                             -${pay.amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                                           </span>
                                           <span className="text-[10px] text-slate-400">
-                                            {new Date(pay.paymentDate).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            {formatDateOnly(pay.paymentDate)}
                                             {' · '}{methodLabels[pay.method] || pay.method}
                                           </span>
                                         </div>
